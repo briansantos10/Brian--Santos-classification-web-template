@@ -15,71 +15,184 @@ limitations under the License.
 ==============================================================================
 -->
 
-<!doctype html>
-
+<!DOCTYPE html>
 <head>
   <title>Project Classification+X</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="shared/tfjs-examples.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>
+  <script defer src="imagenet_classes.js" type="module"></script>
+  <script defer src="js/tensorflow.js"></script>
+  <script defer src="js/custom.js"></script>
 </head>
-
-<style>
-  .pred-container {
-    margin-bottom: 20px;
-  }
-
-  .pred-container > div {
-    display: inline-block;
-    margin-right: 20px;
-    vertical-align: top;
-  }
-
-  .row {
-    display: table-row;
-  }
-  .cell {
-    display: table-cell;
-    padding-right: 20px;
-  }
-
-  #file-container {
-    margin-bottom: 20px;
-  }
-</style>
-
 <body>
-  <div class="tfjs-example-container">
-    <section class='title-area'>
-      <h1>Fruits and Veggies Classification</h1>
-    </section>
-
-    <section>
-      <img src="dataset.jpg" style="width: 50%;">
-      <p class='section-head'>Description</p>
-      <p>
-        We classify 9 categories of fruits and veggies. 
-      </p>
-    </section>
-
-    <section>
-      <p class='section-head'>Status</p>
-      <div id="status"></div>
-    </section>
-
-    <section>
-      <p class='section-head'>Model Output</p>
-
-      <div id="file-container" style="display: none">
-        Upload an image: <input type="file" id="files" name="files[]" multiple />
+  <div class="container">
+    <div class="grid">
+      <div class="left">
+        <input type="file" id="file" accept="image/*" hidden />
+        <div class="img-area" data-img="">
+          <i class="bx bxs-cloud-upload icon"></i>
+          <h3>Upload Image</h3>
+          <p>Image size must be less than <span>2MB</span></p>
+        </div>
+        <div class="btn-container">
+          <button class="select-image">Select Image</button>
+        </div>
       </div>
-
-      <div id="predictions"></div>
-
-      <img style="display: none" id="cat" src="ai4all.jpg" width=224 height=224 />
-    </section>
-
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.5.2"></script>
-    <script src="index.js"></script>
+      <div class="right">
+        <h3 style="padding-bottom: 1rem">Output</h3>
+        <div class="results">
+          <div class="output">
+            <div class="result">
+              <div class="label">Bleached</div>
+              <div class="bar">
+                <div class="percent" id="bleached"></div>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label">Diseased</div>
+              <div class="bar">
+                <div class="percent" id="diseased"></div>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label">Healthy</div>
+              <div class="bar">
+                <div class="percent" id="healthy"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
+<script>
+  const class_names = ["bleached", "diseased", "healthy"];
+  const MODEL_URL = "model_tfjs/model.json";
+  async function loadModel() {
+    try {
+      console.log("Loading model...");
+      const model = await tf.loadLayersModel(MODEL_URL);
+      console.log("Model loaded successfully!");
+      return model;
+    } catch (error) {
+      console.error("Error loading the model:", error);
+      return null;
+    }
+  }
+  async function predict(imageElement, model) {
+    const image = tf.browser.fromPixels(imageElement);
+    const processedImage = preprocess(image);
+    const predictions = model.predict(processedImage);
+    const topPredictions = getTopKClasses(predictions, 1);
+    showResults(imageElement, topPredictions);
+  }
+
+  function preprocess(image) {
+    const resizedImage = tf.image.resizeBilinear(image, [128, 128]);
+    const normalizedImage = resizedImage.div(tf.scalar(255));
+    return normalizedImage.expandDims(0);
+  }
+
+  function getTopKClasses(predictions, k) {
+    const topKIndices = tf.argMax(predictions, 1).dataSync();
+    const topKProbabilities = tf.max(predictions, 1).dataSync();
+    const topKResults = [];
+    for (let i = 0; i < k; i++) {
+      topKResults.push({
+        className: class_names[topKIndices[i]],
+        probability: topKProbabilities[i],
+      });
+    }
+    return topKResults;
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function fakeThinkingEffect() {
+    const progressBarBleached = document.getElementById("bleached");
+    const progressBarDiseased = document.getElementById("diseased");
+    const progressBarHealthy = document.getElementById("healthy");
+    const progressBarElements = [
+      progressBarBleached,
+      progressBarDiseased,
+      progressBarHealthy,
+    ];
+
+    const thinkingIterations = 2;
+    const randomUpdateCount = 5;
+    const updateDelay = 12;
+
+    for (const progressBarElement of progressBarElements) {
+      for (let i = 0; i < thinkingIterations; i++) {
+        for (let j = 0; j < randomUpdateCount; j++) {
+          progressBarElement.style.width = `${Math.random() * 100}%`;
+          await sleep(updateDelay);
+        }
+      }
+    }
+  }
+
+  let predictedLabel = "";
+  async function showResults(imageElement, predictions) {
+    await fakeThinkingEffect();
+    for (let i = 0; i < predictions.length; i++) {
+      const prediction = predictions[i];
+      const progressBarBleached = document.getElementById("bleached");
+      const progressBarDiseased = document.getElementById("diseased");
+      const progressBarHealthy = document.getElementById("healthy");
+
+      if (i === 0) {
+        const predictedLabelElement = document.createElement("div");
+        predictedLabelElement.className = "predicted-label";
+        progressBarBleached.parentNode.insertBefore(
+          predictedLabelElement,
+          progressBarBleached
+        );
+      }
+
+      progressBarBleached.style.width =
+        prediction.className === "bleached" ? "100%" : "0%";
+      progressBarDiseased.style.width =
+        prediction.className === "diseased" ? "100%" : "0%";
+      progressBarHealthy.style.width =
+        prediction.className === "healthy" ? "100%" : "0%";
+    }
+  }
+  document.querySelector(".select-image").addEventListener("click", () => {
+    const progressBarBleached = document.getElementById("bleached");
+    const progressBarDiseased = document.getElementById("diseased");
+    const progressBarHealthy = document.getElementById("healthy");
+
+    progressBarBleached.style.width = "0%";
+    progressBarDiseased.style.width = "0%";
+    progressBarHealthy.style.width = "0%";
+
+    document.getElementById("file");
+  });
+
+  document.getElementById("file").addEventListener("change", async (event) => {
+    const imageElement = document.createElement("img");
+    imageElement.setAttribute("id", "uploadedImage");
+    imageElement.setAttribute("width", "128");
+    imageElement.setAttribute("height", "128");
+
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      imageElement.src = e.target.result;
+      loadModel().then((model) => {
+        predict(imageElement, model);
+      });
+    };
+
+    if (file) {
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
