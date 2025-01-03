@@ -1,6 +1,6 @@
 # Project Classification + X
 
-[See this example live!](https://dkguo.github.io/classification-web-template/)
+[See this example live!](https://briansantos10.github.io/Brian--Santos-classification-web-template/)
 
 This is a template website to host a TensorFlow JS (TFJS) version of image classification models online. 
 
